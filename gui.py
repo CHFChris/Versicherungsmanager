@@ -3,14 +3,21 @@ from tkinter import messagebox, ttk
 from login import check_login
 from server import DBConnection
 from PIL import Image, ImageTk
+from datetime import datetime
 from funktionen import neuen_kunden_einpflegen
+
+def format_datum(d):
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").strftime("%d.%m.%Y")
+    except:
+        return d
 
 def open_kundendaten_view(root, benutzername, rolle):
     for widget in root.winfo_children():
         widget.destroy()
 
     root.title("Kundendaten verwalten")
-    root.geometry("1000x600")
+    root.geometry("1200x600")
     tk.Label(root, text=f"Kundendaten von: {benutzername}", font=("Arial", 14)).pack(pady=10)
 
     filter_frame = tk.Frame(root)
@@ -19,14 +26,12 @@ def open_kundendaten_view(root, benutzername, rolle):
     filter_var = tk.StringVar()
     tk.Entry(filter_frame, textvariable=filter_var, width=20).pack(side=tk.LEFT)
 
-    kunden_tabelle = ttk.Treeview(
-        root,
-        columns=("ID", "Name", "Vorname", "Geburtsdatum", "Versicherungsart",
-                 "Abschlussdatum", "Beginn", "Ende", "Preis"),
-        show="headings"
-    )
+    spalten = ("ID", "Name", "Vorname", "Telefonnummer", "E-Mail", "Geburtsdatum", "Versicherungsart",
+               "Abschlussdatum", "Beginn", "Ende", "Preis (mtl.)")
 
-    for col in kunden_tabelle["columns"]:
+    kunden_tabelle = ttk.Treeview(root, columns=spalten, show="headings")
+
+    for col in spalten:
         kunden_tabelle.heading(col, text=col)
         kunden_tabelle.column(col, width=110, stretch=True)
 
@@ -35,9 +40,10 @@ def open_kundendaten_view(root, benutzername, rolle):
     def lade_kundendaten(filter_wert=""):
         db = DBConnection()
         cur = db.get_cursor()
+
         if rolle == 2:
             query = """
-                SELECT k.Kunden_ID, k.Name, k.Vorname, k.Geburtsdatum,
+                SELECT k.Kunden_ID, k.Name, k.Vorname, k.Telefonnummer, k.`E-Mail`, k.Geburtsdatum,
                        s.Sparten, v.Abschlussdatum, v.Versicherungsbeginn,
                        v.Versicherungsende, v.Versicherungspreis
                 FROM Kunde k
@@ -52,7 +58,7 @@ def open_kundendaten_view(root, benutzername, rolle):
                 params.append(f"%{filter_wert}%")
         else:
             query = """
-                SELECT k.Kunden_ID, k.Name, k.Vorname, k.Geburtsdatum,
+                SELECT k.Kunden_ID, k.Name, k.Vorname, k.Telefonnummer, k.`E-Mail`, k.Geburtsdatum,
                        s.Sparten, v.Abschlussdatum, v.Versicherungsbeginn,
                        v.Versicherungsende, v.Versicherungspreis
                 FROM Kunde k
@@ -70,7 +76,14 @@ def open_kundendaten_view(root, benutzername, rolle):
 
         for row in kunden_tabelle.get_children():
             kunden_tabelle.delete(row)
+
         for eintrag in daten:
+            eintrag = list(eintrag)
+            eintrag[5] = format_datum(eintrag[5])  # Geburtsdatum
+            eintrag[7] = format_datum(eintrag[7])  # Abschlussdatum
+            eintrag[8] = format_datum(eintrag[8])  # Beginn
+            eintrag[9] = format_datum(eintrag[9])  # Ende
+            eintrag[10] = f"{eintrag[10]:.2f} €".replace('.', ',')  # Preis
             kunden_tabelle.insert("", tk.END, values=eintrag)
 
     def neuer_kunde():
@@ -94,10 +107,86 @@ def open_kundendaten_view(root, benutzername, rolle):
             messagebox.showwarning("Auswahl fehlt", "Bitte einen Kunden auswählen.")
             return
         kunde = kunden_tabelle.item(auswahl[0])["values"]
-        if rolle == 1:
-            messagebox.showinfo("Bearbeiten", f"Bearbeite Kunde ID: {kunde[0]}")
-        else:
-            messagebox.showinfo("Bearbeiten", f"Bearbeite Vertrag des Kunden ID: {kunde[0]}")
+        kunden_id = kunde[0]
+
+        db = DBConnection()
+        cur = db.get_cursor()
+
+        cur.execute("""
+            SELECT Name, Telefonnummer, `E-Mail`, Straße, Hausnummer, o.Ort_ID, o.Ort, o.PLZ
+            FROM Kunde k
+            JOIN Ort o ON k.Ort_ID = o.Ort_ID
+            WHERE k.Kunden_ID = ?
+        """, (kunden_id,))
+        daten = cur.fetchone()
+
+        cur.execute("SELECT Ort_ID, Ort, PLZ FROM Ort")
+        orte = cur.fetchall()
+        db.close()
+
+        edit_win = tk.Toplevel(root)
+        edit_win.title("Kunden bearbeiten")
+        edit_win.geometry("400x400")
+
+        tk.Label(edit_win, text="Nachname").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        name_entry = tk.Entry(edit_win, width=30)
+        name_entry.insert(0, daten[0])
+        name_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(edit_win, text="Telefonnummer").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        telefon_entry = tk.Entry(edit_win, width=30)
+        telefon_entry.insert(0, daten[1])
+        telefon_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(edit_win, text="E-Mail").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        email_entry = tk.Entry(edit_win, width=30)
+        email_entry.insert(0, daten[2])
+        email_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tk.Label(edit_win, text="Straße").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        strasse_entry = tk.Entry(edit_win, width=30)
+        strasse_entry.insert(0, daten[3])
+        strasse_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        tk.Label(edit_win, text="Hausnummer").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        hausnummer_entry = tk.Entry(edit_win, width=30)
+        hausnummer_entry.insert(0, daten[4])
+        hausnummer_entry.grid(row=4, column=1, padx=5, pady=5)
+
+        tk.Label(edit_win, text="Ort").grid(row=5, column=0, padx=5, pady=5, sticky="e")
+        ort_cb = ttk.Combobox(edit_win, values=[f"{o[1]} ({o[2]})" for o in orte], state="readonly", width=28)
+        ort_cb.grid(row=5, column=1, padx=5, pady=5)
+        ort_ids = [o[0] for o in orte]
+        ort_cb.set(f"{daten[6]} ({daten[7]})")
+
+        def speichern_aenderung():
+            try:
+                ort_index = ort_cb.current()
+                ort_id = ort_ids[ort_index]
+                db = DBConnection()
+                cur = db.get_cursor()
+                cur.execute("""
+                    UPDATE Kunde
+                    SET Name = ?, Telefonnummer = ?, `E-Mail` = ?, Straße = ?, Hausnummer = ?, Ort_ID = ?
+                    WHERE Kunden_ID = ?
+                """, (
+                    name_entry.get().strip(),
+                    telefon_entry.get().strip(),
+                    email_entry.get().strip(),
+                    strasse_entry.get().strip(),
+                    hausnummer_entry.get().strip(),
+                    ort_id,
+                    kunden_id
+                ))
+                db.commit()
+                db.close()
+                messagebox.showinfo("Erfolg", "Kundendaten wurden aktualisiert.")
+                edit_win.destroy()
+                lade_kundendaten(filter_var.get())
+            except Exception as e:
+                messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{e}")
+
+        tk.Button(edit_win, text="Speichern", command=speichern_aenderung).grid(row=6, column=0, columnspan=2, pady=15)
 
     def kunde_loeschen():
         auswahl = kunden_tabelle.selection()
@@ -134,12 +223,6 @@ def open_hauptmenue(root, benutzername, rolle):
     tk.Button(root, text="Versicherungssparten anzeigen", command=lambda: messagebox.showinfo("Info", "Versicherungssparten"), width=30).pack(pady=5)
     tk.Button(root, text="Abgelaufene Verträge anzeigen", command=lambda: messagebox.showinfo("Info", "Abgelaufene Verträge"), width=30).pack(pady=5)
     tk.Button(root, text="Abmelden", command=lambda: (root.destroy(), start_app()), width=30).pack(pady=5)
-
-def start_app():
-    root = tk.Tk()
-    root.geometry("700x500")
-    LoginApp(root)
-    root.mainloop()
 
 class LoginApp:
     def __init__(self, root):
@@ -179,3 +262,9 @@ class LoginApp:
             open_hauptmenue(self.root, user, rolle)
         else:
             messagebox.showerror("Fehlgeschlagen", "Login fehlgeschlagen!")
+
+def start_app():
+    root = tk.Tk()
+    root.geometry("1200x600")
+    LoginApp(root)
+    root.mainloop()
