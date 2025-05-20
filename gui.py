@@ -26,8 +26,8 @@ def open_kundendaten_view(root, benutzername, rolle):
     filter_var = tk.StringVar()
     tk.Entry(filter_frame, textvariable=filter_var, width=20).pack(side=tk.LEFT)
 
-    spalten = ("ID", "Name", "Vorname", "Telefonnummer", "E-Mail", "Geburtsdatum", "Versicherungsart",
-               "Abschlussdatum", "Beginn", "Ende", "Preis (mtl.)")
+    spalten = ("ID", "Name", "Vorname", "Telefonnummer", "E-Mail", "Geburtsdatum", "Vers.-Art",
+               "Abschlussdatum", "Vers.-Beginn", "Vers. Ende", "Preis (mtl.)")
 
     kunden_tabelle = ttk.Treeview(root, columns=spalten, show="headings")
 
