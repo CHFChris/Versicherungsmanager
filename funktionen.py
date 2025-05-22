@@ -3,14 +3,289 @@ from tkinter import ttk, messagebox
 from server import DBConnection
 from datetime import datetime
 
+def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_callback):
+    win = tk.Toplevel(root)
+    win.title("Neuen Kunden einpflegen")
+    win.geometry("600x650")
+
+    db = DBConnection()
+    cur = db.get_cursor()
+    cur.execute("SELECT Ort_ID, Ort, PLZ FROM Ort")
+    orte = cur.fetchall()
+
+    cur.execute("SELECT Sparten_ID, Sparten FROM Versicherungssparte")
+    sparten = cur.fetchall()
+    db.close()
+
+    sparten_preise = {
+        "KFZ": 102.75,
+        "Hausrat": 12.67,
+        "Haftpflicht": 6.25,
+        "Wohngebäude": 18.33,
+        "Rechtsschutz": 22.76
+    }
+
+    labels = [
+        "Anrede", "Vorname", "Nachname", "Geburtsdatum (TT.MM.JJJJ)", "Straße", "Hausnummer",
+        "Ort", "E-Mail", "Telefon", "Versicherungsart", 
+        "Abschlussdatum (TT.MM.JJJJ)", "Beginn (TT.MM.JJJJ)", 
+        "Ende (TT.MM.JJJJ)"
+    ]
+
+    entries = {}
+
+    for i, label in enumerate(labels):
+        tk.Label(win, text=label).grid(row=i, column=0, sticky="e", padx=5, pady=3)
+
+        if label == "Anrede":
+            cb = ttk.Combobox(win, values=["Herr", "Frau", "Divers"], state="readonly")
+            cb.grid(row=i, column=1, padx=5, pady=3)
+            entries["Anrede"] = cb
+        elif label == "Ort":
+            cb = ttk.Combobox(win, values=[f"{o[1]} {o[2]}" for o in orte], state="readonly")
+            cb.grid(row=i, column=1, padx=5, pady=3)
+            entries["Ort"] = (cb, [o[0] for o in orte])
+        elif label == "Versicherungsart":
+            cb = ttk.Combobox(win, values=[s[1] for s in sparten], state="readonly")
+            cb.grid(row=i, column=1, padx=5, pady=3)
+            entries["Sparte"] = (cb, [s[0] for s in sparten])
+        else:
+            entry = tk.Entry(win)
+            entry.grid(row=i, column=1, padx=5, pady=3)
+            entries[label] = entry
+
+    def parse_datum(d):
+        return datetime.strptime(d.strip(), "%d.%m.%Y").strftime("%Y-%m-%d")
+
+    def speichern():
+        try:
+            name = entries["Nachname"].get().strip()
+            vorname = entries["Vorname"].get().strip()
+            geb = parse_datum(entries["Geburtsdatum (TT.MM.JJJJ)"].get())
+            strasse = entries["Straße"].get().strip()
+            hausnr = entries["Hausnummer"].get().strip()
+            ort_index = entries["Ort"][0].current()
+            ort_id = entries["Ort"][1][ort_index]
+            anrede_text = entries["Anrede"].get()
+            anrede_id = {"Herr": 1, "Frau": 2, "Divers": 3}[anrede_text]
+            email = entries["E-Mail"].get().strip()
+            telefon = entries["Telefon"].get().strip()
+            sparte_index = entries["Sparte"][0].current()
+            sparte_id = entries["Sparte"][1][sparte_index]
+            sparte_name = entries["Sparte"][0].get()
+            preis = sparten_preise.get(sparte_name, 0.0)
+            abschluss = parse_datum(entries["Abschlussdatum (TT.MM.JJJJ)"].get())
+            beginn = parse_datum(entries["Beginn (TT.MM.JJJJ)"].get())
+            ende = parse_datum(entries["Ende (TT.MM.JJJJ)"].get())
+
+            db = DBConnection()
+            cur = db.get_cursor()
+            cur.execute("""
+                INSERT INTO Kunde (Name, Vorname, Straße, Hausnummer, Ort_ID, Anrede, Geburtsdatum, Telefonnummer, `E-Mail`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (name, vorname, strasse, hausnr, ort_id, anrede_id, geb, telefon, email))
+            kunden_id = cur.lastrowid
+
+            cur.execute("""
+                INSERT INTO Vertraege (Kunden_ID, Abschlussdatum, Versicherungsbeginn, Versicherungsende,
+                                       Mitarbeiter, Sparten_ID, Versicherungspreis)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (kunden_id, abschluss, beginn, ende, mitarbeiter_id, sparte_id, preis))
+
+            db.commit()
+            db.close()
+
+            messagebox.showinfo("Erfolg", "Kunde erfolgreich hinzugefügt.")
+            win.destroy()
+            refresh_callback()
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{e}")
+
+    tk.Button(win, text="Speichern", command=speichern).grid(row=len(labels), column=0, columnspan=2, pady=10)
 
 def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_callback):
-    # ... unverändert ...
-    pass
+    win = tk.Toplevel(root)
+    win.title("Neuen Kunden einpflegen")
+    win.geometry("600x650")
+
+    db = DBConnection()
+    cur = db.get_cursor()
+    cur.execute("SELECT Ort_ID, Ort, PLZ FROM Ort")
+    orte = cur.fetchall()
+
+    cur.execute("SELECT Sparten_ID, Sparten FROM Versicherungssparte")
+    sparten = cur.fetchall()
+    db.close()
+
+    sparten_preise = {
+        "KFZ": 102.75,
+        "Hausrat": 12.67,
+        "Haftpflicht": 6.25,
+        "Wohngebäude": 18.33,
+        "Rechtsschutz": 22.76
+    }
+
+    labels = [
+        "Anrede", "Vorname", "Nachname", "Geburtsdatum (TT.MM.JJJJ)", "Straße", "Hausnummer",
+        "Ort", "E-Mail", "Telefon", "Versicherungsart", 
+        "Abschlussdatum (TT.MM.JJJJ)", "Beginn (TT.MM.JJJJ)", 
+        "Ende (TT.MM.JJJJ)"
+    ]
+
+    entries = {}
+
+    for i, label in enumerate(labels):
+        tk.Label(win, text=label).grid(row=i, column=0, sticky="e", padx=5, pady=3)
+
+        if label == "Anrede":
+            cb = ttk.Combobox(win, values=["Herr", "Frau", "Divers"], state="readonly")
+            cb.grid(row=i, column=1, padx=5, pady=3)
+            entries["Anrede"] = cb
+        elif label == "Ort":
+            cb = ttk.Combobox(win, values=[f"{o[1]} {o[2]}" for o in orte], state="readonly")
+            cb.grid(row=i, column=1, padx=5, pady=3)
+            entries["Ort"] = (cb, [o[0] for o in orte])
+        elif label == "Versicherungsart":
+            cb = ttk.Combobox(win, values=[s[1] for s in sparten], state="readonly")
+            cb.grid(row=i, column=1, padx=5, pady=3)
+            entries["Sparte"] = (cb, [s[0] for s in sparten])
+        else:
+            entry = tk.Entry(win)
+            entry.grid(row=i, column=1, padx=5, pady=3)
+            entries[label] = entry
+
+    def parse_datum(d):
+        return datetime.strptime(d.strip(), "%d.%m.%Y").strftime("%Y-%m-%d")
+
+    def speichern():
+        try:
+            name = entries["Nachname"].get().strip()
+            vorname = entries["Vorname"].get().strip()
+            geb = parse_datum(entries["Geburtsdatum (TT.MM.JJJJ)"].get())
+            strasse = entries["Straße"].get().strip()
+            hausnr = entries["Hausnummer"].get().strip()
+            ort_index = entries["Ort"][0].current()
+            ort_id = entries["Ort"][1][ort_index]
+            anrede_text = entries["Anrede"].get()
+            anrede_id = {"Herr": 1, "Frau": 2, "Divers": 3}[anrede_text]
+            email = entries["E-Mail"].get().strip()
+            telefon = entries["Telefon"].get().strip()
+            sparte_index = entries["Sparte"][0].current()
+            sparte_id = entries["Sparte"][1][sparte_index]
+            sparte_name = entries["Sparte"][0].get()
+            preis = sparten_preise.get(sparte_name, 0.0)
+            abschluss = parse_datum(entries["Abschlussdatum (TT.MM.JJJJ)"].get())
+            beginn = parse_datum(entries["Beginn (TT.MM.JJJJ)"].get())
+            ende = parse_datum(entries["Ende (TT.MM.JJJJ)"].get())
+
+            db = DBConnection()
+            cur = db.get_cursor()
+            cur.execute("""
+                INSERT INTO Kunde (Name, Vorname, Straße, Hausnummer, Ort_ID, Anrede, Geburtsdatum, Telefonnummer, `E-Mail`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (name, vorname, strasse, hausnr, ort_id, anrede_id, geb, telefon, email))
+            kunden_id = cur.lastrowid
+
+            cur.execute("""
+                INSERT INTO Vertraege (Kunden_ID, Abschlussdatum, Versicherungsbeginn, Versicherungsende,
+                                       Mitarbeiter, Sparten_ID, Versicherungspreis)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (kunden_id, abschluss, beginn, ende, mitarbeiter_id, sparte_id, preis))
+
+            db.commit()
+            db.close()
+
+            messagebox.showinfo("Erfolg", "Kunde erfolgreich hinzugefügt.")
+            win.destroy()
+            refresh_callback()
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{e}")
+
+    tk.Button(win, text="Speichern", command=speichern).grid(row=len(labels), column=0, columnspan=2, pady=10)
+
 
 def kunden_bearbeiten_popup(root, kunde, refresh_callback):
-    # ... unverändert ...
-    pass
+    kunden_id = kunde[0]
+
+    db = DBConnection()
+    cur = db.get_cursor()
+    cur.execute("""
+        SELECT Name, Telefonnummer, `E-Mail`, Straße, Hausnummer, o.Ort_ID, o.Ort, o.PLZ
+        FROM Kunde k
+        JOIN Ort o ON k.Ort_ID = o.Ort_ID
+        WHERE k.Kunden_ID = ?
+    """, (kunden_id,))
+    daten = cur.fetchone()
+
+    cur.execute("SELECT Ort_ID, Ort, PLZ FROM Ort")
+    orte = cur.fetchall()
+    db.close()
+
+    win = tk.Toplevel(root)
+    win.title("Kundendaten bearbeiten")
+    win.geometry("400x400")
+
+    tk.Label(win, text="Nachname").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    name_entry = tk.Entry(win)
+    name_entry.insert(0, daten[0])
+    name_entry.grid(row=0, column=1, padx=5, pady=5)
+
+    tk.Label(win, text="Telefon").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    telefon_entry = tk.Entry(win)
+    telefon_entry.insert(0, daten[1])
+    telefon_entry.grid(row=1, column=1, padx=5, pady=5)
+
+    tk.Label(win, text="E-Mail").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+    email_entry = tk.Entry(win)
+    email_entry.insert(0, daten[2])
+    email_entry.grid(row=2, column=1, padx=5, pady=5)
+
+    tk.Label(win, text="Straße").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+    strasse_entry = tk.Entry(win)
+    strasse_entry.insert(0, daten[3])
+    strasse_entry.grid(row=3, column=1, padx=5, pady=5)
+
+    tk.Label(win, text="Hausnummer").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+    hausnummer_entry = tk.Entry(win)
+    hausnummer_entry.insert(0, daten[4])
+    hausnummer_entry.grid(row=4, column=1, padx=5, pady=5)
+
+    tk.Label(win, text="Ort").grid(row=5, column=0, padx=5, pady=5, sticky="e")
+    ort_cb = ttk.Combobox(win, values=[f"{o[1]} ({o[2]})" for o in orte], state="readonly")
+    ort_cb.grid(row=5, column=1, padx=5, pady=5)
+    ort_cb.set(f"{daten[6]} ({daten[7]})")
+    ort_ids = [o[0] for o in orte]
+
+    def speichern():
+        try:
+            ort_index = ort_cb.current()
+            ort_id = ort_ids[ort_index]
+
+            db = DBConnection()
+            cur = db.get_cursor()
+            cur.execute("""
+                UPDATE Kunde
+                SET Name = ?, Telefonnummer = ?, `E-Mail` = ?, Straße = ?, Hausnummer = ?, Ort_ID = ?
+                WHERE Kunden_ID = ?
+            """, (
+                name_entry.get().strip(),
+                telefon_entry.get().strip(),
+                email_entry.get().strip(),
+                strasse_entry.get().strip(),
+                hausnummer_entry.get().strip(),
+                ort_id,
+                kunden_id
+            ))
+            db.commit()
+            db.close()
+            messagebox.showinfo("Erfolg", "Kundendaten wurden aktualisiert.")
+            win.destroy()
+            refresh_callback()
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Speichern: {e}")
+
+    tk.Button(win, text="Speichern", command=speichern).grid(row=6, column=0, columnspan=2, pady=15)
+
 
 def kunden_info_anzeigen(root, kunde, vertrag_callback):
     win = tk.Toplevel(root)

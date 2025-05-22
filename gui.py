@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 from datetime import datetime
 from funktionen import neuen_kunden_einpflegen, kunden_bearbeiten_popup, kunden_info_anzeigen, vertrag_hinzufuegen_popup, open_versicherungssparten_view
 
+
 def format_datum(d):
     try:
         return datetime.strptime(d, "%Y-%m-%d").strftime("%d.%m.%Y")
@@ -93,7 +94,7 @@ def open_kundendaten_view(root, benutzername, rolle):
             eintrag[8] = format_datum(eintrag[8])
             eintrag[9] = format_datum(eintrag[9])
             eintrag[10] = format_datum(eintrag[10])
-            eintrag[11] = f"{eintrag[11]:.2f} € monatlich".replace('.', ',')
+            eintrag[11] = f"{eintrag[11]:.2f} €".replace('.', ',')
             kunden_tabelle.insert("", tk.END, values=eintrag)
 
     def neuer_kunde():
@@ -128,6 +129,7 @@ def open_kundendaten_view(root, benutzername, rolle):
     kunden_tabelle.bind("<Double-1>", kundeninfo_anzeigen_event)
 
     def zurueck():
+        from gui import open_hauptmenue
         open_hauptmenue(root, benutzername, rolle)
 
     button_frame = tk.Frame(root)
