@@ -4,7 +4,7 @@ from login import check_login
 from server import DBConnection
 from PIL import Image, ImageTk
 from datetime import datetime
-from funktionen import neuen_kunden_einpflegen
+from funktionen import neuen_kunden_einpflegen, kunden_bearbeiten_popup, kunden_info_anzeigen, vertrag_hinzufuegen_popup, open_versicherungssparten_view
 
 def format_datum(d):
     try:
@@ -26,13 +26,21 @@ def open_kundendaten_view(root, benutzername, rolle):
     filter_var = tk.StringVar()
     tk.Entry(filter_frame, textvariable=filter_var, width=20).pack(side=tk.LEFT)
 
-    spalten = ("ID", "Name", "Vorname", "Telefonnummer", "E-Mail", "Geburtsdatum", "Vers.-Art",
+    spalten = ("ID", "Anrede", "Name", "Vorname", "Geburtsdatum", "Telefonnummer", "E-Mail", "Vers.-Art",
                "Abschlussdatum", "Vers.-Beginn", "Vers. Ende", "Preis (mtl.)")
 
     kunden_tabelle = ttk.Treeview(root, columns=spalten, show="headings")
+    sortierstatus = {col: False for col in spalten}
+
+    def sortiere_spalte(col):
+        eintraege = [(kunden_tabelle.set(k, col), k) for k in kunden_tabelle.get_children("")]
+        eintraege.sort(reverse=sortierstatus[col])
+        for index, (val, k) in enumerate(eintraege):
+            kunden_tabelle.move(k, '', index)
+        sortierstatus[col] = not sortierstatus[col]
 
     for col in spalten:
-        kunden_tabelle.heading(col, text=col)
+        kunden_tabelle.heading(col, text=col, command=lambda _col=col: sortiere_spalte(_col))
         kunden_tabelle.column(col, width=110, stretch=True)
 
     kunden_tabelle.pack(expand=True, fill="both", padx=10, pady=5)
@@ -43,10 +51,11 @@ def open_kundendaten_view(root, benutzername, rolle):
 
         if rolle == 2:
             query = """
-                SELECT k.Kunden_ID, k.Name, k.Vorname, k.Telefonnummer, k.`E-Mail`, k.Geburtsdatum,
+                SELECT k.Kunden_ID, a.Anrede, k.Name, k.Vorname, k.Geburtsdatum, k.Telefonnummer, k.`E-Mail`,
                        s.Sparten, v.Abschlussdatum, v.Versicherungsbeginn,
                        v.Versicherungsende, v.Versicherungspreis
                 FROM Kunde k
+                JOIN Anrede a ON k.Anrede = a.Anrede_ID
                 JOIN Vertraege v ON k.Kunden_ID = v.Kunden_ID
                 JOIN Benutzer b ON v.Mitarbeiter = b.Mitarbeiter_ID
                 JOIN Versicherungssparte s ON v.Sparten_ID = s.Sparten_ID
@@ -58,10 +67,11 @@ def open_kundendaten_view(root, benutzername, rolle):
                 params.append(f"%{filter_wert}%")
         else:
             query = """
-                SELECT k.Kunden_ID, k.Name, k.Vorname, k.Telefonnummer, k.`E-Mail`, k.Geburtsdatum,
+                SELECT k.Kunden_ID, a.Anrede, k.Name, k.Vorname, k.Geburtsdatum, k.Telefonnummer, k.`E-Mail`,
                        s.Sparten, v.Abschlussdatum, v.Versicherungsbeginn,
                        v.Versicherungsende, v.Versicherungspreis
                 FROM Kunde k
+                JOIN Anrede a ON k.Anrede = a.Anrede_ID
                 JOIN Vertraege v ON k.Kunden_ID = v.Kunden_ID
                 JOIN Versicherungssparte s ON v.Sparten_ID = s.Sparten_ID
             """
@@ -79,11 +89,11 @@ def open_kundendaten_view(root, benutzername, rolle):
 
         for eintrag in daten:
             eintrag = list(eintrag)
-            eintrag[5] = format_datum(eintrag[5])  # Geburtsdatum
-            eintrag[7] = format_datum(eintrag[7])  # Abschlussdatum
-            eintrag[8] = format_datum(eintrag[8])  # Beginn
-            eintrag[9] = format_datum(eintrag[9])  # Ende
-            eintrag[10] = f"{eintrag[10]:.2f} €".replace('.', ',')  # Preis
+            eintrag[4] = format_datum(eintrag[4])
+            eintrag[8] = format_datum(eintrag[8])
+            eintrag[9] = format_datum(eintrag[9])
+            eintrag[10] = format_datum(eintrag[10])
+            eintrag[11] = f"{eintrag[11]:.2f} € monatlich".replace('.', ',')
             kunden_tabelle.insert("", tk.END, values=eintrag)
 
     def neuer_kunde():
@@ -107,97 +117,15 @@ def open_kundendaten_view(root, benutzername, rolle):
             messagebox.showwarning("Auswahl fehlt", "Bitte einen Kunden auswählen.")
             return
         kunde = kunden_tabelle.item(auswahl[0])["values"]
-        kunden_id = kunde[0]
+        kunden_bearbeiten_popup(root, kunde, lambda: lade_kundendaten(filter_var.get()))
 
-        db = DBConnection()
-        cur = db.get_cursor()
+    def kundeninfo_anzeigen_event(event):
+        item = kunden_tabelle.identify_row(event.y)
+        if item:
+            kunde = kunden_tabelle.item(item)["values"]
+            kunden_info_anzeigen(root, kunde, lambda k: vertrag_hinzufuegen_popup(root, k))
 
-        cur.execute("""
-            SELECT Name, Telefonnummer, `E-Mail`, Straße, Hausnummer, o.Ort_ID, o.Ort, o.PLZ
-            FROM Kunde k
-            JOIN Ort o ON k.Ort_ID = o.Ort_ID
-            WHERE k.Kunden_ID = ?
-        """, (kunden_id,))
-        daten = cur.fetchone()
-
-        cur.execute("SELECT Ort_ID, Ort, PLZ FROM Ort")
-        orte = cur.fetchall()
-        db.close()
-
-        edit_win = tk.Toplevel(root)
-        edit_win.title("Kunden bearbeiten")
-        edit_win.geometry("400x400")
-
-        tk.Label(edit_win, text="Nachname").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-        name_entry = tk.Entry(edit_win, width=30)
-        name_entry.insert(0, daten[0])
-        name_entry.grid(row=0, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="Telefonnummer").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        telefon_entry = tk.Entry(edit_win, width=30)
-        telefon_entry.insert(0, daten[1])
-        telefon_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="E-Mail").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        email_entry = tk.Entry(edit_win, width=30)
-        email_entry.insert(0, daten[2])
-        email_entry.grid(row=2, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="Straße").grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        strasse_entry = tk.Entry(edit_win, width=30)
-        strasse_entry.insert(0, daten[3])
-        strasse_entry.grid(row=3, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="Hausnummer").grid(row=4, column=0, padx=5, pady=5, sticky="e")
-        hausnummer_entry = tk.Entry(edit_win, width=30)
-        hausnummer_entry.insert(0, daten[4])
-        hausnummer_entry.grid(row=4, column=1, padx=5, pady=5)
-
-        tk.Label(edit_win, text="Ort").grid(row=5, column=0, padx=5, pady=5, sticky="e")
-        ort_cb = ttk.Combobox(edit_win, values=[f"{o[1]} ({o[2]})" for o in orte], state="readonly", width=28)
-        ort_cb.grid(row=5, column=1, padx=5, pady=5)
-        ort_ids = [o[0] for o in orte]
-        ort_cb.set(f"{daten[6]} ({daten[7]})")
-
-        def speichern_aenderung():
-            try:
-                ort_index = ort_cb.current()
-                ort_id = ort_ids[ort_index]
-                db = DBConnection()
-                cur = db.get_cursor()
-                cur.execute("""
-                    UPDATE Kunde
-                    SET Name = ?, Telefonnummer = ?, `E-Mail` = ?, Straße = ?, Hausnummer = ?, Ort_ID = ?
-                    WHERE Kunden_ID = ?
-                """, (
-                    name_entry.get().strip(),
-                    telefon_entry.get().strip(),
-                    email_entry.get().strip(),
-                    strasse_entry.get().strip(),
-                    hausnummer_entry.get().strip(),
-                    ort_id,
-                    kunden_id
-                ))
-                db.commit()
-                db.close()
-                messagebox.showinfo("Erfolg", "Kundendaten wurden aktualisiert.")
-                edit_win.destroy()
-                lade_kundendaten(filter_var.get())
-            except Exception as e:
-                messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{e}")
-
-        tk.Button(edit_win, text="Speichern", command=speichern_aenderung).grid(row=6, column=0, columnspan=2, pady=15)
-
-    def kunde_loeschen():
-        auswahl = kunden_tabelle.selection()
-        if not auswahl:
-            messagebox.showwarning("Auswahl fehlt", "Bitte einen Kunden auswählen.")
-            return
-        kunde = kunden_tabelle.item(auswahl[0])["values"]
-        if rolle == 1:
-            messagebox.showinfo("Löschen", f"Kunde ID {kunde[0]} wird gelöscht.")
-        else:
-            messagebox.showinfo("Löschen", f"Vertrag von Kunde ID {kunde[0]} wird geändert.")
+    kunden_tabelle.bind("<Double-1>", kundeninfo_anzeigen_event)
 
     def zurueck():
         open_hauptmenue(root, benutzername, rolle)
@@ -206,9 +134,8 @@ def open_kundendaten_view(root, benutzername, rolle):
     button_frame.pack(pady=10)
     tk.Button(button_frame, text="Filtern", command=lambda: lade_kundendaten(filter_var.get())).grid(row=0, column=0, padx=5)
     tk.Button(button_frame, text="Neuen Kunden einpflegen", command=neuer_kunde).grid(row=0, column=1, padx=5)
-    tk.Button(button_frame, text=("Kunden bearbeiten" if rolle == 1 else "Kundenanschrift bearbeiten"), command=kunde_bearbeiten).grid(row=0, column=2, padx=5)
-    tk.Button(button_frame, text=("Kunden löschen" if rolle == 1 else "Kundenvertrag ändern"), command=kunde_loeschen).grid(row=0, column=3, padx=5)
-    tk.Button(button_frame, text="Zurück zum Hauptmenü", command=zurueck).grid(row=0, column=4, padx=5)
+    tk.Button(button_frame, text="Kundenanschrift bearbeiten", command=kunde_bearbeiten).grid(row=0, column=2, padx=5)
+    tk.Button(button_frame, text="Zurück zum Hauptmenü", command=zurueck).grid(row=0, column=3, padx=5)
 
     lade_kundendaten()
 
@@ -220,7 +147,7 @@ def open_hauptmenue(root, benutzername, rolle):
     tk.Label(root, text=f"Willkommen, {benutzername}", font=("Arial", 14)).pack(pady=10)
 
     tk.Button(root, text="Kundendaten einsehen", command=lambda: open_kundendaten_view(root, benutzername, rolle), width=30).pack(pady=5)
-    tk.Button(root, text="Versicherungssparten anzeigen", command=lambda: messagebox.showinfo("Info", "Versicherungssparten"), width=30).pack(pady=5)
+    tk.Button(root, text="Versicherungssparten anzeigen", command=lambda: open_versicherungssparten_view(root, benutzername, rolle), width=30).pack(pady=5)
     tk.Button(root, text="Abgelaufene Verträge anzeigen", command=lambda: messagebox.showinfo("Info", "Abgelaufene Verträge"), width=30).pack(pady=5)
     tk.Button(root, text="Abmelden", command=lambda: (root.destroy(), start_app()), width=30).pack(pady=5)
 
