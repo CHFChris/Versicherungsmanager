@@ -5,6 +5,8 @@ from server import DBConnection
 from PIL import Image, ImageTk
 from datetime import datetime
 from funktionen import neuen_kunden_einpflegen, kunden_bearbeiten_popup, kunden_info_anzeigen, vertrag_hinzufuegen_popup, open_versicherungssparten_view
+from funktionen import open_abgelaufene_vertraege_view
+
 
 
 def format_datum(d):
@@ -150,8 +152,93 @@ def open_hauptmenue(root, benutzername, rolle):
 
     tk.Button(root, text="Kundendaten einsehen", command=lambda: open_kundendaten_view(root, benutzername, rolle), width=30).pack(pady=5)
     tk.Button(root, text="Versicherungssparten anzeigen", command=lambda: open_versicherungssparten_view(root, benutzername, rolle), width=30).pack(pady=5)
-    tk.Button(root, text="Abgelaufene Verträge anzeigen", command=lambda: messagebox.showinfo("Info", "Abgelaufene Verträge"), width=30).pack(pady=5)
+    tk.Button(root, text="Abgelaufene Verträge anzeigen", command=lambda: open_abgelaufene_vertraege_view(root, benutzername, rolle), width=30).pack(pady=5)
     tk.Button(root, text="Abmelden", command=lambda: (root.destroy(), start_app()), width=30).pack(pady=5)
+
+def open_abgelaufene_vertraege_view(root, benutzername, rolle):
+    from gui import open_hauptmenue
+    from datetime import datetime, date
+
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    root.title("Abgelaufene Verträge anzeigen")
+    root.geometry("1000x600")
+
+    tk.Label(root, text="Abgelaufene Verträge", font=("Arial", 14)).pack(pady=10)
+
+    spalten = ("Vertrag_ID", "Name", "Vorname", "Versicherungsart", "Versicherungsende")
+    tabelle = ttk.Treeview(root, columns=spalten, show="headings")
+
+    for col in spalten:
+        tabelle.heading(col, text=col)
+        tabelle.column(col, width=180, anchor="w")
+
+    tabelle.pack(expand=True, fill="both", padx=20, pady=10)
+
+    def lade_daten():
+        heute = datetime.today().strftime("%Y-%m-%d")
+        db = DBConnection()
+        cur = db.get_cursor()
+
+        if rolle == 2:
+            query = """
+                SELECT v.Vertrag_ID, k.Name, k.Vorname, s.Sparten, v.Versicherungsende
+                FROM Vertraege v
+                JOIN Kunde k ON v.Kunden_ID = k.Kunden_ID
+                JOIN Versicherungssparte s ON v.Sparten_ID = s.Sparten_ID
+                JOIN Benutzer b ON v.Mitarbeiter = b.Mitarbeiter_ID
+                WHERE v.Versicherungsende < ? AND b.Benutzername = ?
+            """
+            cur.execute(query, (heute, benutzername))
+        else:
+            query = """
+                SELECT v.Vertrag_ID, k.Name, k.Vorname, s.Sparten, v.Versicherungsende
+                FROM Vertraege v
+                JOIN Kunde k ON v.Kunden_ID = k.Kunden_ID
+                JOIN Versicherungssparte s ON v.Sparten_ID = s.Sparten_ID
+                WHERE v.Versicherungsende < ?
+            """
+            cur.execute(query, (heute,))
+
+        daten = cur.fetchall()
+        db.close()
+
+        for row in tabelle.get_children():
+            tabelle.delete(row)
+
+        for eintrag in daten:
+            eintrag = list(eintrag)
+            # FIX: Falls eintrag[4] bereits ein datetime.date ist → direkt formatieren
+            if isinstance(eintrag[4], (datetime, date)):
+                eintrag[4] = eintrag[4].strftime("%d.%m.%Y")
+            tabelle.insert("", "end", values=eintrag)
+
+    def vertrag_loeschen():
+        auswahl = tabelle.selection()
+        if not auswahl:
+            messagebox.showwarning("Auswahl fehlt", "Bitte einen Vertrag auswählen.")
+            return
+        vertrag_id = tabelle.item(auswahl[0])["values"][0]
+
+        if messagebox.askyesno("Löschen", "Möchten Sie diesen Vertrag wirklich löschen?"):
+            db = DBConnection()
+            cur = db.get_cursor()
+            cur.execute("DELETE FROM Vertraege WHERE Vertrag_ID = ?", (vertrag_id,))
+            db.commit()
+            db.close()
+            lade_daten()
+            messagebox.showinfo("Erfolg", "Vertrag gelöscht.")
+
+    button_frame = tk.Frame(root)
+    button_frame.pack(pady=15)
+
+    tk.Button(button_frame, text="Vertrag löschen", command=vertrag_loeschen).pack(side=tk.LEFT, padx=10)
+    tk.Button(button_frame, text="Zurück zum Hauptmenü", command=lambda: open_hauptmenue(root, benutzername, rolle)).pack(side=tk.LEFT, padx=10)
+
+    lade_daten()
+
+
 
 class LoginApp:
     def __init__(self, root):

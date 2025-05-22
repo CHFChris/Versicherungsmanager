@@ -3,105 +3,6 @@ from tkinter import ttk, messagebox
 from server import DBConnection
 from datetime import datetime
 
-def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_callback):
-    win = tk.Toplevel(root)
-    win.title("Neuen Kunden einpflegen")
-    win.geometry("600x650")
-
-    db = DBConnection()
-    cur = db.get_cursor()
-    cur.execute("SELECT Ort_ID, Ort, PLZ FROM Ort")
-    orte = cur.fetchall()
-
-    cur.execute("SELECT Sparten_ID, Sparten FROM Versicherungssparte")
-    sparten = cur.fetchall()
-    db.close()
-
-    sparten_preise = {
-        "KFZ": 102.75,
-        "Hausrat": 12.67,
-        "Haftpflicht": 6.25,
-        "Wohngebäude": 18.33,
-        "Rechtsschutz": 22.76
-    }
-
-    labels = [
-        "Anrede", "Vorname", "Nachname", "Geburtsdatum (TT.MM.JJJJ)", "Straße", "Hausnummer",
-        "Ort", "E-Mail", "Telefon", "Versicherungsart", 
-        "Abschlussdatum (TT.MM.JJJJ)", "Beginn (TT.MM.JJJJ)", 
-        "Ende (TT.MM.JJJJ)"
-    ]
-
-    entries = {}
-
-    for i, label in enumerate(labels):
-        tk.Label(win, text=label).grid(row=i, column=0, sticky="e", padx=5, pady=3)
-
-        if label == "Anrede":
-            cb = ttk.Combobox(win, values=["Herr", "Frau", "Divers"], state="readonly")
-            cb.grid(row=i, column=1, padx=5, pady=3)
-            entries["Anrede"] = cb
-        elif label == "Ort":
-            cb = ttk.Combobox(win, values=[f"{o[1]} {o[2]}" for o in orte], state="readonly")
-            cb.grid(row=i, column=1, padx=5, pady=3)
-            entries["Ort"] = (cb, [o[0] for o in orte])
-        elif label == "Versicherungsart":
-            cb = ttk.Combobox(win, values=[s[1] for s in sparten], state="readonly")
-            cb.grid(row=i, column=1, padx=5, pady=3)
-            entries["Sparte"] = (cb, [s[0] for s in sparten])
-        else:
-            entry = tk.Entry(win)
-            entry.grid(row=i, column=1, padx=5, pady=3)
-            entries[label] = entry
-
-    def parse_datum(d):
-        return datetime.strptime(d.strip(), "%d.%m.%Y").strftime("%Y-%m-%d")
-
-    def speichern():
-        try:
-            name = entries["Nachname"].get().strip()
-            vorname = entries["Vorname"].get().strip()
-            geb = parse_datum(entries["Geburtsdatum (TT.MM.JJJJ)"].get())
-            strasse = entries["Straße"].get().strip()
-            hausnr = entries["Hausnummer"].get().strip()
-            ort_index = entries["Ort"][0].current()
-            ort_id = entries["Ort"][1][ort_index]
-            anrede_text = entries["Anrede"].get()
-            anrede_id = {"Herr": 1, "Frau": 2, "Divers": 3}[anrede_text]
-            email = entries["E-Mail"].get().strip()
-            telefon = entries["Telefon"].get().strip()
-            sparte_index = entries["Sparte"][0].current()
-            sparte_id = entries["Sparte"][1][sparte_index]
-            sparte_name = entries["Sparte"][0].get()
-            preis = sparten_preise.get(sparte_name, 0.0)
-            abschluss = parse_datum(entries["Abschlussdatum (TT.MM.JJJJ)"].get())
-            beginn = parse_datum(entries["Beginn (TT.MM.JJJJ)"].get())
-            ende = parse_datum(entries["Ende (TT.MM.JJJJ)"].get())
-
-            db = DBConnection()
-            cur = db.get_cursor()
-            cur.execute("""
-                INSERT INTO Kunde (Name, Vorname, Straße, Hausnummer, Ort_ID, Anrede, Geburtsdatum, Telefonnummer, `E-Mail`)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (name, vorname, strasse, hausnr, ort_id, anrede_id, geb, telefon, email))
-            kunden_id = cur.lastrowid
-
-            cur.execute("""
-                INSERT INTO Vertraege (Kunden_ID, Abschlussdatum, Versicherungsbeginn, Versicherungsende,
-                                       Mitarbeiter, Sparten_ID, Versicherungspreis)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (kunden_id, abschluss, beginn, ende, mitarbeiter_id, sparte_id, preis))
-
-            db.commit()
-            db.close()
-
-            messagebox.showinfo("Erfolg", "Kunde erfolgreich hinzugefügt.")
-            win.destroy()
-            refresh_callback()
-        except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{e}")
-
-    tk.Button(win, text="Speichern", command=speichern).grid(row=len(labels), column=0, columnspan=2, pady=10)
 
 def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_callback):
     win = tk.Toplevel(root)
@@ -398,3 +299,83 @@ def open_versicherungssparten_view(root, benutzername, rolle):
 
     tk.Button(root, text="Zurück", command=lambda: open_hauptmenue(root, benutzername, rolle)).pack(pady=20)
 
+def open_abgelaufene_vertraege_view(root, benutzername, rolle):
+    from gui import open_hauptmenue
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    root.title("Abgelaufene Verträge anzeigen")
+    root.geometry("1000x600")
+
+    tk.Label(root, text="Abgelaufene Verträge", font=("Arial", 14)).pack(pady=10)
+
+    spalten = ("Vertrags_ID", "Name", "Vorname", "Versicherungsart", "Versicherungsende")
+    tabelle = ttk.Treeview(root, columns=spalten, show="headings")
+
+    for col in spalten:
+        tabelle.heading(col, text=col)
+        tabelle.column(col, width=180, anchor="w")
+
+    tabelle.pack(expand=True, fill="both", padx=20, pady=10)
+
+    def lade_daten():
+        heute = datetime.today().strftime("%Y-%m-%d")
+        db = DBConnection()
+        cur = db.get_cursor()
+
+        if rolle == 2:  # Mitarbeiter
+            query = """
+                SELECT v.Vertrags_ID, k.Name, k.Vorname, s.Sparten, v.Versicherungsende
+                FROM Vertraege v
+                JOIN Kunde k ON v.Kunden_ID = k.Kunden_ID
+                JOIN Versicherungssparte s ON v.Sparten_ID = s.Sparten_ID
+                JOIN Benutzer b ON v.Mitarbeiter = b.Mitarbeiter_ID
+                WHERE v.Versicherungsende < ? AND b.Benutzername = ?
+            """
+            cur.execute(query, (heute, benutzername))
+        else:  # Admin
+            query = """
+                SELECT v.Vertrags_ID, k.Name, k.Vorname, s.Sparten, v.Versicherungsende
+                FROM Vertraege v
+                JOIN Kunde k ON v.Kunden_ID = k.Kunden_ID
+                JOIN Versicherungssparte s ON v.Sparten_ID = s.Sparten_ID
+                WHERE v.Versicherungsende < ?
+            """
+            cur.execute(query, (heute,))
+
+        daten = cur.fetchall()
+        db.close()
+
+        for row in tabelle.get_children():
+            tabelle.delete(row)
+
+        for eintrag in daten:
+            eintrag = list(eintrag)
+            eintrag[4] = datetime.strptime(eintrag[4], "%Y-%m-%d").strftime("%d.%m.%Y")
+            tabelle.insert("", "end", values=eintrag)
+
+    def vertrag_loeschen():
+        auswahl = tabelle.selection()
+        if not auswahl:
+            messagebox.showwarning("Auswahl fehlt", "Bitte einen Vertrag auswählen.")
+            return
+        vertrag_id = tabelle.item(auswahl[0])["values"][0]
+
+        if messagebox.askyesno("Löschen", "Möchten Sie diesen Vertrag wirklich löschen?"):
+            db = DBConnection()
+            cur = db.get_cursor()
+            cur.execute("DELETE FROM Vertraege WHERE Vertrags_ID = ?", (vertrag_id,))
+            db.commit()
+            db.close()
+            lade_daten()
+            messagebox.showinfo("Erfolg", "Vertrag gelöscht.")
+
+    button_frame = tk.Frame(root)
+    button_frame.pack(pady=15)
+
+    if rolle == 2:  # Mitarbeiter darf nur eigene löschen
+        tk.Button(button_frame, text="Vertrag löschen", command=vertrag_loeschen).pack(side=tk.LEFT, padx=10)
+
+    tk.Button(button_frame, text="Zurück zum Hauptmenü", command=lambda: open_hauptmenue(root, benutzername, rolle)).pack(side=tk.LEFT, padx=10)
+
+    lade_daten()
