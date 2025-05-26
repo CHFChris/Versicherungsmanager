@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 from server import DBConnection
 from datetime import datetime
 
-
+#Neuen Kunden einpflegen
 def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_callback):
     win = tk.Toplevel(root)
     win.title("Neuen Kunden einpflegen")
@@ -55,9 +55,11 @@ def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_c
             entry.grid(row=i, column=1, padx=5, pady=3)
             entries[label] = entry
 
+#Datum auf TT.MM.YYYY geändert
     def parse_datum(d):
         return datetime.strptime(d.strip(), "%d.%m.%Y").strftime("%Y-%m-%d")
 
+#Button der die Daten auf die Datenbank speichert
     def speichern():
         try:
             name = entries["Nachname"].get().strip()
@@ -104,7 +106,7 @@ def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_c
 
     tk.Button(win, text="Speichern", command=speichern).grid(row=len(labels), column=0, columnspan=2, pady=10)
 
-
+#Kunde bearbeiten Popup fenster
 def kunden_bearbeiten_popup(root, kunde, refresh_callback):
     kunden_id = kunde[0]
 
@@ -157,6 +159,7 @@ def kunden_bearbeiten_popup(root, kunde, refresh_callback):
     ort_cb.set(f"{daten[6]} ({daten[7]})")
     ort_ids = [o[0] for o in orte]
 
+#Kundendaten im Popup fenster (bearbeiten) speichern
     def speichern():
         try:
             ort_index = ort_cb.current()
@@ -187,7 +190,7 @@ def kunden_bearbeiten_popup(root, kunde, refresh_callback):
 
     tk.Button(win, text="Speichern", command=speichern).grid(row=6, column=0, columnspan=2, pady=15)
 
-
+#Kundeninfo anzeigen auf doppelclick
 def kunden_info_anzeigen(root, kunde, vertrag_callback):
     win = tk.Toplevel(root)
     win.title("Kundendetails anzeigen")
@@ -208,6 +211,7 @@ def kunden_info_anzeigen(root, kunde, vertrag_callback):
 
     tk.Button(win, text="Neuen Vertrag hinzufügen", command=neuer_vertrag).grid(row=len(labels), column=0, columnspan=2, pady=15)
 
+#Kundenvertrag hinzufügen mit den vorherigen Daten vom Kunden
 def vertrag_hinzufuegen_popup(root, kunde):
     win = tk.Toplevel(root)
     win.title("Neuen Vertrag anlegen")
@@ -245,9 +249,11 @@ def vertrag_hinzufuegen_popup(root, kunde):
     ende_entry = tk.Entry(win)
     ende_entry.grid(row=3, column=1, padx=5, pady=5)
 
+#Datum auf TT.MM.YYYY anzeigen lassen
     def parse_datum(d):
         return datetime.strptime(d.strip(), "%d.%m.%Y").strftime("%Y-%m-%d")
 
+#Vertrag speichern lassen
     def speichern():
         try:
             sparte_name = sparte_cb.get()
@@ -274,6 +280,7 @@ def vertrag_hinzufuegen_popup(root, kunde):
 
     tk.Button(win, text="Speichern", command=speichern).grid(row=4, column=0, columnspan=2, pady=10)
 
+#Versicherungssparten anzeigen lassen bei click auf Button
 def open_versicherungssparten_view(root, benutzername, rolle):
     from gui import open_hauptmenue  # ✅ Lokaler Import zur Vermeidung von circular import
 
@@ -299,6 +306,7 @@ def open_versicherungssparten_view(root, benutzername, rolle):
 
     tk.Button(root, text="Zurück", command=lambda: open_hauptmenue(root, benutzername, rolle)).pack(pady=20)
 
+#Abgelaufene Verträge anzeigen lassen
 def open_abgelaufene_vertraege_view(root, benutzername, rolle):
     from gui import open_hauptmenue
     for widget in root.winfo_children():
@@ -318,12 +326,13 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
 
     tabelle.pack(expand=True, fill="both", padx=20, pady=10)
 
+#Datenladen der Abgelaufenen Verträge
     def lade_daten():
         heute = datetime.today().strftime("%Y-%m-%d")
         db = DBConnection()
         cur = db.get_cursor()
 
-        if rolle == 2:  # Mitarbeiter
+        if rolle == 2:  # Mitarbeitersicht
             query = """
                 SELECT v.Vertrags_ID, k.Name, k.Vorname, s.Sparten, v.Versicherungsende
                 FROM Vertraege v
@@ -333,7 +342,7 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
                 WHERE v.Versicherungsende < ? AND b.Benutzername = ?
             """
             cur.execute(query, (heute, benutzername))
-        else:  # Admin
+        else:  # Adminsicht
             query = """
                 SELECT v.Vertrags_ID, k.Name, k.Vorname, s.Sparten, v.Versicherungsende
                 FROM Vertraege v
@@ -354,6 +363,7 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
             eintrag[4] = datetime.strptime(eintrag[4], "%Y-%m-%d").strftime("%d.%m.%Y")
             tabelle.insert("", "end", values=eintrag)
 
+#Vertrag aus der Tabelle löschen
     def vertrag_loeschen():
         auswahl = tabelle.selection()
         if not auswahl:

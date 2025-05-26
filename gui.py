@@ -8,13 +8,14 @@ from funktionen import neuen_kunden_einpflegen, kunden_bearbeiten_popup, kunden_
 from funktionen import open_abgelaufene_vertraege_view
 
 
-
+#Format des Datums auf TT.MM.YYYY
 def format_datum(d):
     try:
         return datetime.strptime(d, "%Y-%m-%d").strftime("%d.%m.%Y")
     except:
         return d
-
+    
+#Kundendatentabelle öffnen
 def open_kundendaten_view(root, benutzername, rolle):
     for widget in root.winfo_children():
         widget.destroy()
@@ -35,6 +36,7 @@ def open_kundendaten_view(root, benutzername, rolle):
     kunden_tabelle = ttk.Treeview(root, columns=spalten, show="headings")
     sortierstatus = {col: False for col in spalten}
 
+#Spaltensortieren sobald man doppelclickt
     def sortiere_spalte(col):
         eintraege = [(kunden_tabelle.set(k, col), k) for k in kunden_tabelle.get_children("")]
         eintraege.sort(reverse=sortierstatus[col])
@@ -48,6 +50,7 @@ def open_kundendaten_view(root, benutzername, rolle):
 
     kunden_tabelle.pack(expand=True, fill="both", padx=10, pady=5)
 
+#Kundendaten von der Datenbank laden
     def lade_kundendaten(filter_wert=""):
         db = DBConnection()
         cur = db.get_cursor()
@@ -99,6 +102,7 @@ def open_kundendaten_view(root, benutzername, rolle):
             eintrag[11] = f"{eintrag[11]:.2f} €".replace('.', ',')
             kunden_tabelle.insert("", tk.END, values=eintrag)
 
+#Neuen Kunden hinzufügen
     def neuer_kunde():
         try:
             db = DBConnection()
@@ -114,6 +118,7 @@ def open_kundendaten_view(root, benutzername, rolle):
         except Exception as e:
             messagebox.showerror("Fehler", f"Konnte Mitarbeiter-ID nicht ermitteln:\n{e}")
 
+#Kunde bearbeiten
     def kunde_bearbeiten():
         auswahl = kunden_tabelle.selection()
         if not auswahl:
@@ -122,6 +127,7 @@ def open_kundendaten_view(root, benutzername, rolle):
         kunde = kunden_tabelle.item(auswahl[0])["values"]
         kunden_bearbeiten_popup(root, kunde, lambda: lade_kundendaten(filter_var.get()))
 
+#Kundeninfo anzeigen und Vertrag hinzufügen
     def kundeninfo_anzeigen_event(event):
         item = kunden_tabelle.identify_row(event.y)
         if item:
@@ -143,6 +149,7 @@ def open_kundendaten_view(root, benutzername, rolle):
 
     lade_kundendaten()
 
+#Hauptmenü öffnen und Kundendaten einsehen etc. anzeigen lassen
 def open_hauptmenue(root, benutzername, rolle):
     for widget in root.winfo_children():
         widget.destroy()
@@ -155,6 +162,7 @@ def open_hauptmenue(root, benutzername, rolle):
     tk.Button(root, text="Abgelaufene Verträge anzeigen", command=lambda: open_abgelaufene_vertraege_view(root, benutzername, rolle), width=30).pack(pady=5)
     tk.Button(root, text="Abmelden", command=lambda: (root.destroy(), start_app()), width=30).pack(pady=5)
 
+#Abgelaufene Verträge anzeigen lassen
 def open_abgelaufene_vertraege_view(root, benutzername, rolle):
     from gui import open_hauptmenue
     from datetime import datetime, date
@@ -176,6 +184,7 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
 
     tabelle.pack(expand=True, fill="both", padx=20, pady=10)
 
+#Kundendaten in Abgelaufenen Verträge laden
     def lade_daten():
         heute = datetime.today().strftime("%Y-%m-%d")
         db = DBConnection()
@@ -214,6 +223,7 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
                 eintrag[4] = eintrag[4].strftime("%d.%m.%Y")
             tabelle.insert("", "end", values=eintrag)
 
+#Vertrag löschen, Auswahl des Vertrags benötigt
     def vertrag_loeschen():
         auswahl = tabelle.selection()
         if not auswahl:
@@ -239,7 +249,7 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
     lade_daten()
 
 
-
+#Login / Class mit Grafik anzeige
 class LoginApp:
     def __init__(self, root):
         self.root = root
@@ -269,6 +279,7 @@ class LoginApp:
 
         tk.Button(root, text="Login", command=self.login, width=20).pack(pady=10)
 
+#Loginprüfen auf Passwort und Username mit Messagebox
     def login(self):
         user = self.username.get()
         pw = self.password.get()
@@ -279,6 +290,7 @@ class LoginApp:
         else:
             messagebox.showerror("Fehlgeschlagen", "Login fehlgeschlagen!")
 
+#Loginfenster größe
 def start_app():
     root = tk.Tk()
     root.geometry("1200x600")
