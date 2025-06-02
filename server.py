@@ -4,15 +4,16 @@ class DBConnection:
     def __init__(self):
         try:
             self.conn = mariadb.connect(
-                user="Admin",
-                password="Admin1",
-                host="localhost",
+                user="team07",
+                password="BBVV2",
+                host="10.80.0.206",
                 port=3306,
-                database="versicherung"
+                database="team07"
             )
             self.cur = self.conn.cursor()
+            print("✅ Verbindung zur Datenbank erfolgreich!")
         except mariadb.Error as e:
-            print(f"Fehler bei der Verbindung: {e}")
+            print(f" Fehler bei der Verbindung: {e}")
             exit(1)
 
     def get_cursor(self):

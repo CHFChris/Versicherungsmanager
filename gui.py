@@ -3,40 +3,151 @@ from tkinter import messagebox, ttk
 from login import check_login
 from server import DBConnection
 from PIL import Image, ImageTk
-from datetime import datetime
+from datetime import datetime, date
 from funktionen import neuen_kunden_einpflegen, kunden_bearbeiten_popup, kunden_info_anzeigen, vertrag_hinzufuegen_popup, open_versicherungssparten_view
 from funktionen import open_abgelaufene_vertraege_view
 
+# 🎨 Design-Farben und Schriften
+FARBE_HINTERGRUND = "#f4f6f8"
+FARBE_BUTTON = "#1976d2"
+FARBE_BUTTON_HOVER = "#0d47a1"
+FARBE_TEXT = "#263238"
+SCHRIFT_STANDARD = ("Segoe UI", 11)
+SCHRIFT_FETT = ("Segoe UI", 11, "bold")
 
-#Format des Datums auf TT.MM.YYYY
+# 🔘 Einheitlicher Button-Stil
+def erzeuge_button(master, text, command):
+    return tk.Button(
+        master, text=text, command=command,
+        bg=FARBE_BUTTON, fg="white",
+        activebackground=FARBE_BUTTON_HOVER,
+        activeforeground="white",
+        font=SCHRIFT_FETT, relief="flat",
+        padx=10, pady=5, cursor="hand2"
+    )
+
+# 📆 Format: 2024-05-26 -> 26.05.2024
 def format_datum(d):
     try:
         return datetime.strptime(d, "%Y-%m-%d").strftime("%d.%m.%Y")
     except:
         return d
-    
-#Kundendatentabelle öffnen
+
+# 🚪 Start der App mit Login-Fenster
+def start_app():
+    root = tk.Tk()
+    root.geometry("1200x600")
+    root.configure(bg=FARBE_HINTERGRUND)
+
+    try:
+        logo = Image.open("Grafik.png")
+        logo = logo.resize((160, 100))
+        logo_img = ImageTk.PhotoImage(logo)
+        label_logo = tk.Label(root, image=logo_img, bg=FARBE_HINTERGRUND)
+        label_logo.image = logo_img
+        label_logo.pack(pady=(30, 10))
+    except:
+        tk.Label(root, text="Logo nicht gefunden", font=SCHRIFT_STANDARD, bg=FARBE_HINTERGRUND, fg="red").pack(pady=20)
+
+    LoginApp(root)
+    root.mainloop()
+
+# 🔐 LoginMaske mit Eingabe & Loginprüfung
+class LoginApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Login")
+
+        self.username = tk.StringVar()
+        self.password = tk.StringVar()
+
+        login_frame = tk.Frame(root, bg=FARBE_HINTERGRUND)
+        login_frame.pack(pady=20)
+
+        tk.Label(login_frame, text="Benutzername", font=SCHRIFT_STANDARD, bg=FARBE_HINTERGRUND, fg=FARBE_TEXT).grid(row=0, column=0, padx=10, pady=5)
+        tk.Entry(login_frame, textvariable=self.username).grid(row=0, column=1, pady=5)
+
+        tk.Label(login_frame, text="Passwort", font=SCHRIFT_STANDARD, bg=FARBE_HINTERGRUND, fg=FARBE_TEXT).grid(row=1, column=0, padx=10, pady=5)
+        tk.Entry(login_frame, textvariable=self.password, show="*").grid(row=1, column=1, pady=5)
+
+        erzeuge_button(root, "Login", self.login).pack(pady=15)
+
+    def login(self):
+        user = self.username.get()
+        pw = self.password.get()
+        success, rolle = check_login(user, pw)
+        if success:
+            self.root.title("Lade Hauptmenü...")
+            open_hauptmenue(self.root, user, rolle)
+        else:
+            messagebox.showerror("Fehlgeschlagen", "Login fehlgeschlagen!")
+
+# 🏠 Hauptmenü-Ansicht
+def open_hauptmenue(root, benutzername, rolle):
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    root.title(f"Hauptmenü - {benutzername}")
+    root.configure(bg=FARBE_HINTERGRUND)
+
+    try:
+        logo = Image.open("Grafik.png")
+        logo = logo.resize((160, 100))
+        logo_img = ImageTk.PhotoImage(logo)
+        label_logo = tk.Label(root, image=logo_img, bg=FARBE_HINTERGRUND)
+        label_logo.image = logo_img  # Referenz speichern!
+        label_logo.pack(pady=(20, 10))
+    except:
+        tk.Label(root, text="Logo nicht gefunden", font=SCHRIFT_STANDARD, bg=FARBE_HINTERGRUND, fg="red").pack(pady=10)
+
+    # Begrüßung
+    tk.Label(
+        root,
+        text=f"Willkommen, {benutzername}",
+        font=SCHRIFT_FETT,
+        bg=FARBE_HINTERGRUND,
+        fg=FARBE_TEXT
+    ).pack(pady=10)
+
+    # Buttons für Navigation
+    erzeuge_button(root, "Kundendaten einsehen", lambda: open_kundendaten_view(root, benutzername, rolle)).pack(pady=5)
+    erzeuge_button(root, "Versicherungssparten anzeigen", lambda: open_versicherungssparten_view(root, benutzername, rolle)).pack(pady=5)
+    erzeuge_button(root, "Abgelaufene Verträge anzeigen", lambda: open_abgelaufene_vertraege_view(root, benutzername, rolle)).pack(pady=5)
+    erzeuge_button(root, "Abmelden", lambda: (root.destroy(), start_app())).pack(pady=5)
+
+# 📋 Kundendaten-Ansicht
 def open_kundendaten_view(root, benutzername, rolle):
     for widget in root.winfo_children():
         widget.destroy()
 
     root.title("Kundendaten verwalten")
     root.geometry("1200x600")
-    tk.Label(root, text=f"Kundendaten von: {benutzername}", font=("Arial", 14)).pack(pady=10)
+    root.configure(bg=FARBE_HINTERGRUND)
 
-    filter_frame = tk.Frame(root)
+    tk.Label(
+        root,
+        text=f"Kundendaten von: {benutzername}",
+        font=SCHRIFT_FETT,
+        bg=FARBE_HINTERGRUND,
+        fg=FARBE_TEXT
+    ).pack(pady=10)
+
+    # Filter
+    filter_frame = tk.Frame(root, bg=FARBE_HINTERGRUND)
     filter_frame.pack(pady=5)
-    tk.Label(filter_frame, text="Nach Versicherungsart filtern:").pack(side=tk.LEFT)
+
+    tk.Label(filter_frame, text="Nach Versicherungsart filtern:", font=SCHRIFT_STANDARD, bg=FARBE_HINTERGRUND, fg=FARBE_TEXT).pack(side=tk.LEFT)
     filter_var = tk.StringVar()
-    tk.Entry(filter_frame, textvariable=filter_var, width=20).pack(side=tk.LEFT)
+    tk.Entry(filter_frame, textvariable=filter_var, width=20).pack(side=tk.LEFT, padx=5)
 
-    spalten = ("ID", "Anrede", "Name", "Vorname", "Geburtsdatum", "Telefonnummer", "E-Mail", "Vers.-Art",
-               "Abschlussdatum", "Vers.-Beginn", "Vers. Ende", "Preis (mtl.)")
-
+    # Tabelle
+    spalten = (
+        "ID", "Anrede", "Name", "Vorname", "Geburtsdatum", "Telefonnummer", "E-Mail", "Vers.-Art",
+        "Abschlussdatum", "Vers.-Beginn", "Vers. Ende", "Preis (mtl.)"
+    )
     kunden_tabelle = ttk.Treeview(root, columns=spalten, show="headings")
     sortierstatus = {col: False for col in spalten}
 
-#Spaltensortieren sobald man doppelclickt
     def sortiere_spalte(col):
         eintraege = [(kunden_tabelle.set(k, col), k) for k in kunden_tabelle.get_children("")]
         eintraege.sort(reverse=sortierstatus[col])
@@ -50,7 +161,7 @@ def open_kundendaten_view(root, benutzername, rolle):
 
     kunden_tabelle.pack(expand=True, fill="both", padx=10, pady=5)
 
-#Kundendaten von der Datenbank laden
+    # Daten laden
     def lade_kundendaten(filter_wert=""):
         db = DBConnection()
         cur = db.get_cursor()
@@ -102,7 +213,7 @@ def open_kundendaten_view(root, benutzername, rolle):
             eintrag[11] = f"{eintrag[11]:.2f} €".replace('.', ',')
             kunden_tabelle.insert("", tk.END, values=eintrag)
 
-#Neuen Kunden hinzufügen
+    # Neuer Kunde
     def neuer_kunde():
         try:
             db = DBConnection()
@@ -118,7 +229,7 @@ def open_kundendaten_view(root, benutzername, rolle):
         except Exception as e:
             messagebox.showerror("Fehler", f"Konnte Mitarbeiter-ID nicht ermitteln:\n{e}")
 
-#Kunde bearbeiten
+    # Kunde bearbeiten
     def kunde_bearbeiten():
         auswahl = kunden_tabelle.selection()
         if not auswahl:
@@ -127,7 +238,7 @@ def open_kundendaten_view(root, benutzername, rolle):
         kunde = kunden_tabelle.item(auswahl[0])["values"]
         kunden_bearbeiten_popup(root, kunde, lambda: lade_kundendaten(filter_var.get()))
 
-#Kundeninfo anzeigen und Vertrag hinzufügen
+    # Kunde doppelt geklickt → Details anzeigen
     def kundeninfo_anzeigen_event(event):
         item = kunden_tabelle.identify_row(event.y)
         if item:
@@ -140,40 +251,28 @@ def open_kundendaten_view(root, benutzername, rolle):
         from gui import open_hauptmenue
         open_hauptmenue(root, benutzername, rolle)
 
-    button_frame = tk.Frame(root)
+    # Buttons unten
+    button_frame = tk.Frame(root, bg=FARBE_HINTERGRUND)
     button_frame.pack(pady=10)
-    tk.Button(button_frame, text="Filtern", command=lambda: lade_kundendaten(filter_var.get())).grid(row=0, column=0, padx=5)
-    tk.Button(button_frame, text="Neuen Kunden einpflegen", command=neuer_kunde).grid(row=0, column=1, padx=5)
-    tk.Button(button_frame, text="Kundenanschrift bearbeiten", command=kunde_bearbeiten).grid(row=0, column=2, padx=5)
-    tk.Button(button_frame, text="Zurück zum Hauptmenü", command=zurueck).grid(row=0, column=3, padx=5)
+
+    erzeuge_button(button_frame, "Filtern", lambda: lade_kundendaten(filter_var.get())).grid(row=0, column=0, padx=5)
+    erzeuge_button(button_frame, "Neuen Kunden einpflegen", neuer_kunde).grid(row=0, column=1, padx=5)
+    erzeuge_button(button_frame, "Kundenanschrift bearbeiten", kunde_bearbeiten).grid(row=0, column=2, padx=5)
+    erzeuge_button(button_frame, "Zurück zum Hauptmenü", zurueck).grid(row=0, column=3, padx=5)
 
     lade_kundendaten()
-
-#Hauptmenü öffnen und Kundendaten einsehen etc. anzeigen lassen
-def open_hauptmenue(root, benutzername, rolle):
-    for widget in root.winfo_children():
-        widget.destroy()
-
-    root.title(f"Hauptmenü - {benutzername}")
-    tk.Label(root, text=f"Willkommen, {benutzername}", font=("Arial", 14)).pack(pady=10)
-
-    tk.Button(root, text="Kundendaten einsehen", command=lambda: open_kundendaten_view(root, benutzername, rolle), width=30).pack(pady=5)
-    tk.Button(root, text="Versicherungssparten anzeigen", command=lambda: open_versicherungssparten_view(root, benutzername, rolle), width=30).pack(pady=5)
-    tk.Button(root, text="Abgelaufene Verträge anzeigen", command=lambda: open_abgelaufene_vertraege_view(root, benutzername, rolle), width=30).pack(pady=5)
-    tk.Button(root, text="Abmelden", command=lambda: (root.destroy(), start_app()), width=30).pack(pady=5)
-
-#Abgelaufene Verträge anzeigen lassen
+# ⏳ Abgelaufene Verträge anzeigen
 def open_abgelaufene_vertraege_view(root, benutzername, rolle):
     from gui import open_hauptmenue
-    from datetime import datetime, date
 
     for widget in root.winfo_children():
         widget.destroy()
 
     root.title("Abgelaufene Verträge anzeigen")
     root.geometry("1000x600")
+    root.configure(bg=FARBE_HINTERGRUND)
 
-    tk.Label(root, text="Abgelaufene Verträge", font=("Arial", 14)).pack(pady=10)
+    tk.Label(root, text="Abgelaufene Verträge", font=SCHRIFT_FETT, bg=FARBE_HINTERGRUND, fg=FARBE_TEXT).pack(pady=10)
 
     spalten = ("Vertrag_ID", "Name", "Vorname", "Versicherungsart", "Versicherungsende")
     tabelle = ttk.Treeview(root, columns=spalten, show="headings")
@@ -184,7 +283,6 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
 
     tabelle.pack(expand=True, fill="both", padx=20, pady=10)
 
-#Kundendaten in Abgelaufenen Verträge laden
     def lade_daten():
         heute = datetime.today().strftime("%Y-%m-%d")
         db = DBConnection()
@@ -218,12 +316,11 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
 
         for eintrag in daten:
             eintrag = list(eintrag)
-            # FIX: Falls eintrag[4] bereits ein datetime.date ist → direkt formatieren
             if isinstance(eintrag[4], (datetime, date)):
                 eintrag[4] = eintrag[4].strftime("%d.%m.%Y")
             tabelle.insert("", "end", values=eintrag)
 
-#Vertrag löschen, Auswahl des Vertrags benötigt
+    # Vertrag löschen
     def vertrag_loeschen():
         auswahl = tabelle.selection()
         if not auswahl:
@@ -240,59 +337,11 @@ def open_abgelaufene_vertraege_view(root, benutzername, rolle):
             lade_daten()
             messagebox.showinfo("Erfolg", "Vertrag gelöscht.")
 
-    button_frame = tk.Frame(root)
+    # Button-Leiste unten
+    button_frame = tk.Frame(root, bg=FARBE_HINTERGRUND)
     button_frame.pack(pady=15)
 
-    tk.Button(button_frame, text="Vertrag löschen", command=vertrag_loeschen).pack(side=tk.LEFT, padx=10)
-    tk.Button(button_frame, text="Zurück zum Hauptmenü", command=lambda: open_hauptmenue(root, benutzername, rolle)).pack(side=tk.LEFT, padx=10)
+    erzeuge_button(button_frame, "Vertrag löschen", vertrag_loeschen).pack(side=tk.LEFT, padx=10)
+    erzeuge_button(button_frame, "Zurück zum Hauptmenü", lambda: open_hauptmenue(root, benutzername, rolle)).pack(side=tk.LEFT, padx=10)
 
     lade_daten()
-
-
-#Login / Class mit Grafik anzeige
-class LoginApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Login")
-
-        canvas = tk.Canvas(root, height=100)
-        canvas.pack()
-        try:
-            logo = Image.open("Grafik.png")
-            logo = logo.resize((120, 100))
-            self.logo_img = ImageTk.PhotoImage(logo)
-            canvas.create_image(300, 60, image=self.logo_img)
-        except:
-            canvas.create_text(350, 60, text="Logo nicht gefunden", font=("Arial", 12))
-
-        self.username = tk.StringVar()
-        self.password = tk.StringVar()
-
-        login_frame = tk.Frame(root)
-        login_frame.pack(pady=20)
-
-        tk.Label(login_frame, text="Benutzername").grid(row=0, column=0, padx=10, pady=5)
-        tk.Entry(login_frame, textvariable=self.username).grid(row=0, column=1, pady=5)
-
-        tk.Label(login_frame, text="Passwort").grid(row=1, column=0, padx=10, pady=5)
-        tk.Entry(login_frame, textvariable=self.password, show='*').grid(row=1, column=1, pady=5)
-
-        tk.Button(root, text="Login", command=self.login, width=20).pack(pady=10)
-
-#Loginprüfen auf Passwort und Username mit Messagebox
-    def login(self):
-        user = self.username.get()
-        pw = self.password.get()
-        success, rolle = check_login(user, pw)
-        if success:
-            self.root.title("Lade Hauptmenü...")
-            open_hauptmenue(self.root, user, rolle)
-        else:
-            messagebox.showerror("Fehlgeschlagen", "Login fehlgeschlagen!")
-
-#Loginfenster größe
-def start_app():
-    root = tk.Tk()
-    root.geometry("1200x600")
-    LoginApp(root)
-    root.mainloop()

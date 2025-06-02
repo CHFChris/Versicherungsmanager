@@ -1,21 +1,31 @@
 import bcrypt
 from server import DBConnection
+from datetime import datetime
 
-# Login prüfen (Case-Sensitive!)
 def check_login(benutzername, passwort):
     db = DBConnection()
     cur = db.get_cursor()
 
-    # Groß-/Kleinschreibung beachten (BINARY = case-sensitive Vergleich)
-    cur.execute("SELECT PasswortHash, Rolle_ID FROM Benutzer WHERE BINARY Benutzername = ?", (benutzername,))
+    # Benutzer anhand des Namens finden (case-sensitive)
+    cur.execute("SELECT Benutzer_ID, PasswortHash, Rolle_ID FROM Benutzer WHERE Benutzername = ?", (benutzername,))
     row = cur.fetchone()
 
-    if row:
-        gespeicherter_hash = row[0]
-        if isinstance(gespeicherter_hash, str):
-            gespeicherter_hash = gespeicherter_hash.encode('utf-8')
+    erfolgreich = False
+    benutzer_id = None
+    rolle_id = None
 
-        if bcrypt.checkpw(passwort.encode('utf-8'), gespeicherter_hash):
-            return True, row[1]
+    # Passwort überprüfen
+    if row and bcrypt.checkpw(passwort.encode('utf-8'), row[1].encode('utf-8')):
+        erfolgreich = True
+        benutzer_id = row[0]
+        rolle_id = row[2]
 
-    return False, None
+    # Loginversuch protokollieren in Tabelle `login`
+    loginzeit = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    cur.execute("INSERT INTO login (Benutzer_ID, Loginzeit, Erfolgreich) VALUES (?, ?, ?)",
+                (benutzer_id, loginzeit, erfolgreich))
+
+    db.commit()
+    db.close()
+
+    return erfolgreich, rolle_id if erfolgreich else None
