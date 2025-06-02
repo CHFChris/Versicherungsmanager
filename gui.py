@@ -121,7 +121,7 @@ def open_kundendaten_view(root, benutzername, rolle):
         widget.destroy()
 
     root.title("Kundendaten verwalten")
-    root.geometry("1200x600")
+    root.geometry("1420x720")
     root.configure(bg=FARBE_HINTERGRUND)
 
     tk.Label(
