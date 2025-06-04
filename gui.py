@@ -6,6 +6,16 @@ from PIL import Image, ImageTk
 from datetime import datetime, date
 from funktionen import neuen_kunden_einpflegen, kunden_bearbeiten_popup, kunden_info_anzeigen, vertrag_hinzufuegen_popup, open_versicherungssparten_view
 from funktionen import open_abgelaufene_vertraege_view
+import sys
+import os
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 
 # 🎨 Design-Farben und Schriften
 FARBE_HINTERGRUND = "#f4f6f8"
@@ -40,7 +50,7 @@ def start_app():
     root.configure(bg=FARBE_HINTERGRUND)
 
     try:
-        logo = Image.open("Grafik.png")
+        logo = Image.open(resource_path("Grafik.png"))
         logo = logo.resize((160, 100))
         logo_img = ImageTk.PhotoImage(logo)
         label_logo = tk.Label(root, image=logo_img, bg=FARBE_HINTERGRUND)
@@ -91,7 +101,7 @@ def open_hauptmenue(root, benutzername, rolle):
     root.configure(bg=FARBE_HINTERGRUND)
 
     try:
-        logo = Image.open("Grafik.png")
+        logo = Image.open(resource_path("Grafik.png"))
         logo = logo.resize((160, 100))
         logo_img = ImageTk.PhotoImage(logo)
         label_logo = tk.Label(root, image=logo_img, bg=FARBE_HINTERGRUND)

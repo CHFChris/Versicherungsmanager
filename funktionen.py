@@ -2,6 +2,18 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from server import DBConnection
 from datetime import datetime
+from PIL import Image, ImageTk
+import sys
+import os
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
 
 #Neuen Kunden einpflegen
 def neuen_kunden_einpflegen(root, benutzername, rolle, mitarbeiter_id, refresh_callback):
@@ -280,31 +292,141 @@ def vertrag_hinzufuegen_popup(root, kunde):
 
     tk.Button(win, text="Speichern", command=speichern).grid(row=4, column=0, columnspan=2, pady=10)
 
-#Versicherungssparten anzeigen lassen bei click auf Button
 def open_versicherungssparten_view(root, benutzername, rolle):
-    from gui import open_hauptmenue  # ✅ Lokaler Import zur Vermeidung von circular import
+    from gui import open_hauptmenue
+    import os
 
     for widget in root.winfo_children():
         widget.destroy()
 
     root.title("Versicherungssparten")
-    root.geometry("1000x700")
+    root.geometry("1200x700")
+    root.configure(bg="#f4f6f8")
 
-    infos = [
-        ("KFZ-Haftpflichtversicherung", "(ist in Deutschland eine Pflichtversicherung).\nÜbernimmt Schäden an dritte z. B. Personen- Sach und Vermögensschäden).\n Teilkasko (Feuer, Sturm/Hagel, Diebstahl, Marderbiss, Glasschäden und Zusammenstöße mit Tierhaarwild).\n Vollkasko (beinhaltet alles was in der Teilkaskoversicherung versichert ist und dazu Eigenschäden und Schäden durch Vandalismus).", "102,75 € monatlich."),
-        ("Hausratversicherung", "Versichert bewegliche Gegenstände wie Möbel, Schmuck, Bargeld (bis 1.500 €).\nDeckt Schäden durch Einbruch, Raub, Wasser und Feuer ab.", "12,67 € monatlich."),
-        ("Wohngebäudeversicherung", "Schützt das Gebäude – Dach, Fassade, fest verbaute Teile –\nvor Sturm, Wasser, Feuer und weiteren Elementargefahren.", "18,33 € monatlich."),
-        ("Rechtsschutzversicherung", "Deckt Anwalts- und Gerichtskosten im privaten, verkehrsrechtlichen oder mietrechtlichen Bereich.", "22,76 € monatlich."),
-        ("Privathaftpflichtversicherung", "Deckt Schäden ab, die Sie versehentlich Dritten zufügen – z. B. beim Fahrradfahren.\nAuch Schlüsselverlust ist mitversichert.", "6,25 € monatlich.")
+    # Canvas und Scrollbar einrichten
+    canvas = tk.Canvas(root, bg="#f4f6f8", highlightthickness=0)
+    scrollbar = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
+    scroll_frame = tk.Frame(canvas, bg="#f4f6f8")
+
+    canvas.create_window((0, 0), window=scroll_frame, anchor="nw", tags="all")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    # Scrollregion anpassen bei Änderungen
+    scroll_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    # Zoom-Tracking-Variable
+    zoom_level = {'scale': 1.0}
+
+    def _on_mousewheel(event):
+        if not canvas.winfo_exists():
+            return  # vermeidet Absturz, wenn canvas nicht mehr existiert
+
+        if event.state & 0x0004:  # STRG gedrückt
+            factor = 1.1 if event.delta > 0 else 0.9
+            canvas.scale("all", 0, 0, factor, factor)
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        else:
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    canvas.bind("<MouseWheel>", _on_mousewheel)
+
+
+
+    tk.Label(scroll_frame, text="Versicherungssparten", font=("Segoe UI", 14, "bold"),
+             bg="#f4f6f8", fg="#263238").pack(pady=10)
+
+    sparten_infos = [
+        {
+            "titel": "KFZ-Haftpflichtversicherung",
+            "beschreibung": """(ist in Deutschland eine Pflichtversicherung).
+Übernimmt Schäden an Dritte z.\u202fB. Personen-, Sach- und Vermögensschäden.
+Teilkasko: Feuer, Hagel, Diebstahl, Marderbiss etc.
+Vollkasko: inkl. Eigenschäden und Vandalismus.""",
+            "preis": "102,75 €",
+            "bild": "KFZ.png"
+        },
+        {
+            "titel": "Hausratversicherung",
+            "beschreibung": """Versichert Möbel, Schmuck, Bargeld (bis 1.500\u202f€).
+Schutz bei Einbruch, Raub, Wasser- und Feuerschäden.""",
+            "preis": "12,67 €",
+            "bild": "Hausrat.png"
+        },
+        {
+            "titel": "Wohngebäudeversicherung",
+            "beschreibung": """Deckt Schäden am Haus durch Sturm, Feuer, Leitungswasser,
+sowie optionale Elementargefahren.""",
+            "preis": "18,33 €",
+            "bild": "Wohngebäude.png"
+        },
+        {
+            "titel": "Rechtsschutzversicherung",
+            "beschreibung": """\u00dcbernimmt Anwalts- und Gerichtskosten bei Streitigkeiten –
+privat, verkehrsrechtlich oder mietrechtlich.""",
+            "preis": "22,76 €",
+            "bild": "Rechtsschutz.png"
+        },
+        {
+            "titel": "Privathaftpflichtversicherung",
+            "beschreibung": """Zahlt bei versehentlich verursachten Schäden an Dritten.
+Oft inkl. Schlüsselverlust.""",
+            "preis": "6,25 €",
+            "bild": "Privathaftpflicht.png"
+        }
     ]
 
-    for i, (titel, beschreibung, preis) in enumerate(infos):
-        tk.Label(root, text=titel, font=("Arial", 12, "bold"), anchor="w").pack(fill="x", padx=20, pady=(10 if i == 0 else 5, 0))
-        tk.Label(root, text=beschreibung, justify="left", anchor="w", wraplength=950).pack(fill="x", padx=40)
-        tk.Label(root, text=f"Preis: {preis}", fg="green", anchor="w").pack(fill="x", padx=40, pady=(0, 10))
-        ttk.Separator(root, orient="horizontal").pack(fill="x", padx=20, pady=(0, 10))
+    bilder_refs = {}
 
-    tk.Button(root, text="Zurück", command=lambda: open_hauptmenue(root, benutzername, rolle)).pack(pady=20)
+    for eintrag in sparten_infos:
+        frame = tk.Frame(scroll_frame, bg="white", bd=1, relief="solid")
+        frame.pack(fill="x", padx=20, pady=10, ipady=10)
+
+        inhalt = tk.Frame(frame, bg="white")
+        inhalt.pack(fill="both", expand=True, padx=20, pady=15)
+
+        text = tk.Frame(inhalt, bg="white")
+        text.pack(side="left", fill="both", expand=True)
+
+        tk.Label(text, text=eintrag["titel"], font=("Segoe UI", 11, "bold"),
+                 bg="white", anchor="w").pack(anchor="w")
+        tk.Label(text, text=eintrag["beschreibung"], font=("Segoe UI", 10),
+                 bg="white", anchor="w", justify="left", wraplength=700).pack(anchor="w", pady=5)
+        tk.Label(text, text=f"Preis: {eintrag['preis']} monatlich.",
+                 font=("Segoe UI", 10, "bold"), fg="green", bg="white").pack(anchor="w")
+
+        try:
+            pfad = resource_path(eintrag["bild"])
+            bild = Image.open(pfad).resize((250, 250), Image.LANCZOS)
+            bildtk = ImageTk.PhotoImage(bild)
+            label = tk.Label(inhalt, image=bildtk, bg="white")
+            label.image = bildtk
+            label.pack(side="right", padx=10)
+        except Exception as e:
+            print(f"Fehler beim Laden von {eintrag['bild']}: {e}")
+            tk.Label(inhalt, text="Bild nicht gefunden", bg="white", fg="red").pack(side="right", padx=10)
+
+    tk.Button(
+        scroll_frame,
+        text="Zurück zum Hauptmenü",
+        command=lambda: open_hauptmenue(root, benutzername, rolle),
+        bg="#1976d2",
+        fg="white",
+        font=("Segoe UI", 11, "bold"),
+        activebackground="#0d47a1",
+        activeforeground="white",
+        relief="flat",
+        padx=10,
+        pady=5,
+        cursor="hand2"
+    ).pack(pady=20)
+
+
 
 #Abgelaufene Verträge anzeigen lassen
 def open_abgelaufene_vertraege_view(root, benutzername, rolle):
