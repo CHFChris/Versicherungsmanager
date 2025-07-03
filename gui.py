@@ -17,7 +17,7 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-# 🎨 Design-Farben und Schriften
+#  Design-Farben und Schriften
 FARBE_HINTERGRUND = "#f4f6f8"
 FARBE_BUTTON = "#1976d2"
 FARBE_BUTTON_HOVER = "#0d47a1"
@@ -25,7 +25,7 @@ FARBE_TEXT = "#263238"
 SCHRIFT_STANDARD = ("Segoe UI", 11)
 SCHRIFT_FETT = ("Segoe UI", 11, "bold")
 
-# 🔘 Einheitlicher Button-Stil
+# Einheitlicher Button-Stil
 def erzeuge_button(master, text, command):
     return tk.Button(
         master, text=text, command=command,
@@ -36,14 +36,14 @@ def erzeuge_button(master, text, command):
         padx=10, pady=5, cursor="hand2"
     )
 
-# 📆 Format: 2024-05-26 -> 26.05.2024
+#  Format: 2024-05-26 -> 26.05.2024
 def format_datum(d):
     try:
         return datetime.strptime(d, "%Y-%m-%d").strftime("%d.%m.%Y")
     except:
         return d
 
-# 🚪 Start der App mit Login-Fenster
+#  Start der App mit Login-Fenster
 def start_app():
     root = tk.Tk()
     root.geometry("1200x600")
@@ -62,7 +62,7 @@ def start_app():
     LoginApp(root)
     root.mainloop()
 
-# 🔐 LoginMaske mit Eingabe & Loginprüfung
+#  LoginMaske mit Eingabe & Loginprüfung
 class LoginApp:
     def __init__(self, root):
         self.root = root
@@ -92,7 +92,7 @@ class LoginApp:
         else:
             messagebox.showerror("Fehlgeschlagen", "Login fehlgeschlagen!")
 
-# 🏠 Hauptmenü-Ansicht
+# Hauptmenü-Ansicht
 def open_hauptmenue(root, benutzername, rolle):
     for widget in root.winfo_children():
         widget.destroy()
@@ -125,7 +125,7 @@ def open_hauptmenue(root, benutzername, rolle):
     erzeuge_button(root, "Abgelaufene Verträge anzeigen", lambda: open_abgelaufene_vertraege_view(root, benutzername, rolle)).pack(pady=5)
     erzeuge_button(root, "Abmelden", lambda: (root.destroy(), start_app())).pack(pady=5)
 
-# 📋 Kundendaten-Ansicht
+#  Kundendaten-Ansicht
 def open_kundendaten_view(root, benutzername, rolle):
     for widget in root.winfo_children():
         widget.destroy()
@@ -271,7 +271,7 @@ def open_kundendaten_view(root, benutzername, rolle):
     erzeuge_button(button_frame, "Zurück zum Hauptmenü", zurueck).grid(row=0, column=3, padx=5)
 
     lade_kundendaten()
-# ⏳ Abgelaufene Verträge anzeigen
+#  Abgelaufene Verträge anzeigen
 def open_abgelaufene_vertraege_view(root, benutzername, rolle):
     from gui import open_hauptmenue
 

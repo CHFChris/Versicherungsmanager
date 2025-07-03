@@ -11,7 +11,7 @@ class DBConnection:
                 database="team07"
             )
             self.cur = self.conn.cursor()
-            print("✅ Verbindung zur Datenbank erfolgreich!")
+            print(" Verbindung zur Datenbank erfolgreich!")
         except mariadb.Error as e:
             print(f" Fehler bei der Verbindung: {e}")
             exit(1)

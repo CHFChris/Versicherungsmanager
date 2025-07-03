@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 import sys
 import os
 
+#Abspeichern für die Exe - damit die Bilder auch in der Exe funktionieren
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS

@@ -2,6 +2,8 @@ import bcrypt
 from server import DBConnection
 from datetime import datetime
 
+#Objektverbindung zur Datenbank
+#und überprüfung der Anmeldedaten
 def check_login(benutzername, passwort):
     db = DBConnection()
     cur = db.get_cursor()
