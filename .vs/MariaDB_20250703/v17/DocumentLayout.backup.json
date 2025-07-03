@@ -1,0 +1,58 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\78\\Documents\\C# Programme\\MariaDB_20250703\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{0DA0B6E3-6DB7-44C5-9422-C92AC73CB644}|MariaDB_20250703\\MariaDB_20250703.csproj|c:\\users\\78\\documents\\c# programme\\mariadb_20250703\\mariadb_20250703\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0DA0B6E3-6DB7-44C5-9422-C92AC73CB644}|MariaDB_20250703\\MariaDB_20250703.csproj|solutionrelative:mariadb_20250703\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0DA0B6E3-6DB7-44C5-9422-C92AC73CB644}|MariaDB_20250703\\MariaDB_20250703.csproj|c:\\users\\78\\documents\\c# programme\\mariadb_20250703\\mariadb_20250703\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{0DA0B6E3-6DB7-44C5-9422-C92AC73CB644}|MariaDB_20250703\\MariaDB_20250703.csproj|solutionrelative:mariadb_20250703\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Form1.cs",
+              "DocumentMoniker": "C:\\Users\\78\\Documents\\C# Programme\\MariaDB_20250703\\MariaDB_20250703\\Form1.cs",
+              "RelativeDocumentMoniker": "MariaDB_20250703\\Form1.cs",
+              "ToolTip": "C:\\Users\\78\\Documents\\C# Programme\\MariaDB_20250703\\MariaDB_20250703\\Form1.cs",
+              "RelativeToolTip": "MariaDB_20250703\\Form1.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAcwCgAAAA3AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-03T06:45:32.064Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Form1.cs [Entwurf]",
+              "DocumentMoniker": "C:\\Users\\78\\Documents\\C# Programme\\MariaDB_20250703\\MariaDB_20250703\\Form1.cs",
+              "RelativeDocumentMoniker": "MariaDB_20250703\\Form1.cs",
+              "ToolTip": "C:\\Users\\78\\Documents\\C# Programme\\MariaDB_20250703\\MariaDB_20250703\\Form1.cs [Entwurf]",
+              "RelativeToolTip": "MariaDB_20250703\\Form1.cs [Entwurf]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-03T06:43:34.713Z",
+              "EditorCaption": " [Entwurf]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
